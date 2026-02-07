@@ -33,14 +33,12 @@ public class PatientController {
         if(req.getUsername()==null || req.getUsername().isBlank()) return ResponseEntity.badRequest().body("Username is required");
         if(req.getPassword()==null || req.getPassword().isBlank()) return ResponseEntity.badRequest().body("Password is required");
         try {
-            // 1) register user in identity-service
             Map<String,String> body = new HashMap<>();
             body.put("username", req.getUsername());
             body.put("password", req.getPassword());
             body.put("role", "ROLE_PATIENT");
             var resp = rest.postForEntity("http://localhost:8085/register", body, Map.class);
             if(!resp.getStatusCode().is2xxSuccessful()) return ResponseEntity.status(resp.getStatusCode()).body(resp.getBody());
-            // 2) create local user record if absent
             User u = users.findByUsername(req.getUsername()).orElseGet(() -> {
                 User nu = new User();
                 nu.setUsername(req.getUsername());
@@ -75,7 +73,6 @@ public class PatientController {
                               @RequestParam(required=false) String gender){
         boolean isPatient = auth.getAuthorities().stream().anyMatch(ga -> ga.getAuthority().equals("ROLE_PATIENT"));
         if(isPatient){
-            // For patients, only return their own record to support self-scoped cross-service calls
             Long pid = repo.findByUserUsername(auth.getName()).map(Patient::getId).orElse(null);
             if(pid == null) return java.util.List.of();
             return repo.findById(pid).map(java.util.List::of).orElse(java.util.List.of());
@@ -85,6 +82,4 @@ public class PatientController {
         if(gender!=null) return repo.findByGenderIgnoreCase(gender);
         return repo.findAll();
     }
-
-    // Note: original monolith had no /resolve-id or /count endpoints; omitting extras to keep parity.
 }

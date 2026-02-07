@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class DashboardController {
   private final RestTemplate restTemplate;
   public DashboardController(RestTemplate restTemplate){ this.restTemplate = restTemplate; }
-    ")
+
   @GetMapping("/stats")
   public ResponseEntity<Map<String,Object>> stats(HttpServletRequest request){
     try {

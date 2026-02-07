@@ -1,7 +1,5 @@
 package com.example.patient.config;
 
-import com.example.patient.model.Patient;
-import com.example.patient.model.User;
 import com.example.patient.repository.PatientRepository;
 import com.example.patient.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;

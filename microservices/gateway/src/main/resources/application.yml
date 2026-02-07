@@ -49,7 +49,6 @@ spring:
           uri: lb://dashboard-service
           predicates:
             - Path=/dashboard/**
-        # Static UI is now served directly by the gateway from classpath:/static
 eureka:
   client:
     service-url:

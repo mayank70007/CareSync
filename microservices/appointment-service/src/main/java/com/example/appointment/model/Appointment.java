@@ -11,7 +11,7 @@ public class Appointment {
   private Long patientId;
   private Long doctorId;
   private LocalDateTime appointmentTime;
-  private String status; // e.g., SCHEDULED, DONE, CANCELLED
+  private String status;
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }

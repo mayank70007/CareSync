@@ -3,7 +3,7 @@ package com.example.identity.dto;
 public class RegisterRequest {
     private String username;
     private String password;
-    private String role; // e.g., ROLE_DOCTOR or ROLE_PATIENT
+    private String role;
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

@@ -27,7 +27,7 @@ public class SeedDoctorService {
         d.setEmail("doctor@example.com");
         var existing = users.findByUsername("doctor");
         if (existing.isPresent()) {
-            d.setUser(existing.get()); // managed within same transaction
+            d.setUser(existing.get());
         } else {
             User nu = new User();
             nu.setUsername("doctor");

@@ -1,7 +1,5 @@
 package com.example.doctor.config;
 
-import com.example.doctor.model.Doctor;
-import com.example.doctor.model.User;
 import com.example.doctor.repository.DoctorRepository;
 import com.example.doctor.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;

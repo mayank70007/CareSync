@@ -34,7 +34,6 @@ public class DefaultUsersBootstrap {
     CommandLineRunner seedDefaults(UserRepository repo, PasswordEncoder encoder){
         return args -> {
             if(!enabled) return;
-            // Doctor
             repo.findByUsername(doctorUsername).ifPresentOrElse(u -> {
                 if(force){
                     u.setPassword(encoder.encode(doctorPassword));
@@ -51,7 +50,6 @@ public class DefaultUsersBootstrap {
                 System.out.println("[identity-service] Bootstrapped doctor user '"+doctorUsername+"'.");
             });
 
-            // Patient
             repo.findByUsername(patientUsername).ifPresentOrElse(u -> {
                 if(force){
                     u.setPassword(encoder.encode(patientPassword));

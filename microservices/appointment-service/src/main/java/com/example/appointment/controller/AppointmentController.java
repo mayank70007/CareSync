@@ -8,7 +8,6 @@ import org.springframework.web.client.RestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/appointment")
@@ -26,7 +25,6 @@ public class AppointmentController {
                                   @RequestParam Long doctorId,
                                   @RequestParam LocalDateTime appointmentTime,
                                   HttpServletRequest request) {
-        // Check if user has ADMIN role from gateway headers
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin access required");
@@ -43,7 +41,6 @@ public class AppointmentController {
     @GetMapping
     public ResponseEntity<?> list(HttpServletRequest request) {
         String userRole = request.getHeader("X-User-Role");
-        String username = request.getHeader("X-User-Username");
         
         if (!"ROLE_ADMIN".equals(userRole) && !"ROLE_DOCTOR".equals(userRole) && !"ROLE_PATIENT".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
@@ -53,7 +50,6 @@ public class AppointmentController {
             return ResponseEntity.ok(repo.findAll());
         }
         
-        // Build headers with Authorization to call supporting endpoints
         HttpHeaders headers = new HttpHeaders();
         String authz = request.getHeader("Authorization");
         if (authz != null && !authz.isBlank()) headers.set("Authorization", authz);
@@ -61,7 +57,6 @@ public class AppointmentController {
         
         if ("ROLE_DOCTOR".equals(userRole)) {
             try {
-                // /doctor/me returns the current doctor's entity including id
                 var resp = restTemplate.exchange("http://localhost:8086/doctor/me", HttpMethod.GET, entity, java.util.Map.class);
                 Object id = resp.getBody() == null ? null : ((java.util.Map<?,?>)resp.getBody()).get("id");
                 if (id != null) { 
@@ -69,9 +64,8 @@ public class AppointmentController {
                 }
             } catch (Exception ignored) {}
             return ResponseEntity.ok(java.util.List.of());
-        } else { // PATIENT
+        } else {
             try {
-                // GET /patient returns list with only the caller's own patient record
                 var resp = restTemplate.exchange("http://localhost:8088/patient", HttpMethod.GET, entity, java.util.List.class);
                 var list = (java.util.List<?>) resp.getBody();
                 if (list != null && !list.isEmpty()) {
@@ -90,7 +84,6 @@ public class AppointmentController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
-        // Check if user has ADMIN role from gateway headers
         String userRole = request.getHeader("X-User-Role");
         if (!"ROLE_ADMIN".equals(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -102,13 +95,4 @@ public class AppointmentController {
         }
         return ResponseEntity.notFound().build();
     }
-}deleteById(id);
-    return ResponseEntity.noContent().build();
-  }
-}
-
-
-    repo.deleteById(id);
-    return ResponseEntity.noContent().build();
-  }
 }

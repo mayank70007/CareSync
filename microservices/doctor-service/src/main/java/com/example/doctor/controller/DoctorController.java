@@ -36,7 +36,6 @@ public class DoctorController {
         if(req.getUsername()==null || req.getUsername().isBlank()) return ResponseEntity.badRequest().body("Username is required");
         if(req.getPassword()==null || req.getPassword().isBlank()) return ResponseEntity.badRequest().body("Password is required");
         try {
-            // 1) create identity user via identity-service
             Map<String, String> payload = new HashMap<>();
             payload.put("username", req.getUsername());
             payload.put("password", req.getPassword());
@@ -45,7 +44,6 @@ public class DoctorController {
             if(!identityResp.getStatusCode().is2xxSuccessful()){
                 return ResponseEntity.status(identityResp.getStatusCode()).body(identityResp.getBody());
             }
-            // 2) create local doctor and link to local user row with same username
             User u = users.findByUsername(req.getUsername()).orElseGet(() -> {
                 User nu = new User();
                 nu.setUsername(req.getUsername());
@@ -96,16 +94,12 @@ public class DoctorController {
     public ResponseEntity<?> me(Authentication auth){
         return repo.findByUserUsername(auth.getName()).<ResponseEntity<?>>map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
-    
-    // Note: original monolith had no /count or /resolve-id endpoints; omitted to keep parity.
 
     @PreAuthorize("hasRole('DOCTOR')")
     @GetMapping("/my/patients")
     public List<?> myPatients(Authentication auth, HttpServletRequest request) {
-        // Resolve current doctor id
         Long did = repo.findByUserUsername(auth.getName()).map(Doctor::getId).orElse(null);
         if(did == null) return List.of();
-        // Forward Authorization to appointment service to list appointments by doctor
         HttpHeaders headers = new HttpHeaders();
         String authz = request.getHeader("Authorization");
         if(authz!=null && !authz.isBlank()) headers.set("Authorization", authz);
@@ -114,7 +108,6 @@ public class DoctorController {
             var resp = restTemplate.exchange("http://localhost:8091/appointment", HttpMethod.GET, entity, java.util.List.class);
             java.util.List<?> list = resp.getBody();
             if(list == null) return List.of();
-            // list contains maps with patientId; fetch unique patients from patient-service
             java.util.Set<Long> pids = new java.util.HashSet<>();
             for(Object o : list){
                 if(o instanceof java.util.Map<?,?> m){
@@ -128,7 +121,9 @@ public class DoctorController {
             for(Long pid : pids){
                 try{
                     var p = restTemplate.exchange("http://localhost:8088/patient/"+pid, HttpMethod.GET, entity, java.util.Map.class).getBody();
-                    if(p!=null) patients.add((java.util.Map<String,Object>)p);
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String,Object> patientMap = (java.util.Map<String,Object>)p;
+                    if(patientMap!=null) patients.add(patientMap);
                 }catch(Exception ignored){}
             }
             return patients;

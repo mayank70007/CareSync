@@ -28,13 +28,12 @@ public class SeedPatientService {
         p.setPhone("8888888888");
         var existing = users.findByUsername("patient");
         if (existing.isPresent()) {
-            // Managed entity within the same persistence context
             p.setUser(existing.get());
         } else {
             User nu = new User();
             nu.setUsername("patient");
             nu.setRole("ROLE_PATIENT");
-            users.save(nu); // ensure managed/new user is persisted
+            users.save(nu);
             p.setUser(nu);
         }
         repo.save(p);

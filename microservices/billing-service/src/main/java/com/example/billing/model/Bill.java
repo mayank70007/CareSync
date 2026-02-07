@@ -10,7 +10,7 @@ public class Bill {
   private Long patientId;
   private Double amount;
   private LocalDate billDate;
-  private String status; // PENDING, PAID
+  private String status;
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }

@@ -1,0 +1,14 @@
+server:
+  port: 8094
+spring:
+  application:
+    name: dashboard-service
+app:
+  jwt:
+    secret: VGhpc0lzQVN1cGVyU2VjcmV0S2V5Rm9ySldUV2l0aEF0TGVhc3QzMkNoYXJzIQ==
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

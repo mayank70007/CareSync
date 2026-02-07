@@ -3,7 +3,7 @@ package com.example.billing.controller;
 import com.example.billing.model.Bill;
 import com.example.billing.repository.BillRepository;
 import org.springframework.http.*;
-import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.client.RestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ public class BillController {
   private final BillRepository repo;
   private final RestTemplate restTemplate;
   public BillController(BillRepository repo, RestTemplate restTemplate){ this.repo = repo; this.restTemplate = restTemplate; }
-    ")
+
   @PostMapping
   public ResponseEntity<Bill> create(@RequestParam Long patientId,
                                      @RequestParam Double amount,
@@ -29,17 +29,16 @@ public class BillController {
     b.setStatus("PENDING");
     return ResponseEntity.ok(repo.save(b));
   }
-    ")
+
   @GetMapping
   public List<Bill> all(Authentication auth, HttpServletRequest request){
     boolean isAdmin = auth.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_ADMIN"));
     if(isAdmin) return repo.findAll();
-    // patient: restrict to own bills
     Long pid = resolvePatientId(request);
     if(pid == null) return java.util.List.of();
     return repo.findByPatientId(pid);
   }
-    ")
+
   @PostMapping("/{id}/pay")
   public ResponseEntity<Bill> pay(@PathVariable Long id, Authentication auth, HttpServletRequest request){
     boolean isAdmin = auth.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_ADMIN"));
@@ -52,7 +51,7 @@ public class BillController {
       return ResponseEntity.ok(repo.save(b));
     }).orElse(ResponseEntity.notFound().build());
   }
-    ")
+
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable Long id){
     repo.deleteById(id);
@@ -65,7 +64,6 @@ public class BillController {
       String authz = request.getHeader("Authorization");
       if(authz!=null && !authz.isBlank()) headers.set("Authorization", authz);
       HttpEntity<Void> entity = new HttpEntity<>(headers);
-      // GET /patient returns only the caller's own patient record when role is PATIENT
       var resp = restTemplate.exchange("http://localhost:8088/patient", HttpMethod.GET, entity, java.util.List.class);
       var list = (java.util.List<?>) resp.getBody();
       if(list==null || list.isEmpty()) return null;
