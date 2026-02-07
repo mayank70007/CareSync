@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="data:," />
+  <style>
+    .toggle { cursor:pointer; color:#2563eb }
+    form > .row { gap: 1rem }
+  </style>
+  <script src="/js/auth.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const note = consumeAuthNote();
+      if(note){
+        const msg = document.getElementById('loginMsg');
+        if(msg) msg.textContent = note;
+      }
+      if(isLoggedIn()){
+        window.location.assign('/');
+      }
+    });
+  </script>
+  
+</head>
+<body>
+  <main class="card" style="max-width:520px">
+    <div class="row"><h1 id="title">Login</h1><a class="tile" href="/">Home</a></div>
+
+  <section class="section" id="loginSection">
+      <form id="loginForm">
+        <div class="row">
+          <div style="flex:1"><label>Username<input name="username" required /></label></div>
+        </div>
+        <div class="row">
+          <div style="flex:1"><label>Password<input type="password" name="password" required /></label></div>
+        </div>
+        <button class="primary" type="submit">Login</button>
+        <span id="loginMsg" class="note"></span>
+      </form>
+      <p class="note">Accounts are created by Admin. Please use provided credentials.</p>
+    </section>
+
+  </main>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = Object.fromEntries(fd.entries());
+      const msg = document.getElementById('loginMsg');
+      msg.textContent = 'Signing in...';
+      try{
+  const res = await fetch('/login', { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(payload)});
+        if(!res.ok){ msg.textContent = 'Invalid credentials'; return; }
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        location.replace('/');
+      }catch(err){ msg.textContent = 'Network error'; }
+    });
+
+  </script>
+  
+</body>
+</html>

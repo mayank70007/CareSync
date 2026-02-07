@@ -1,0 +1,4 @@
+com\example\appointment\model\Appointment.class
+com\example\appointment\repository\AppointmentRepository.class
+com\example\appointment\controller\AppointmentController.class
+com\example\appointment\AppointmentServiceApplication.class

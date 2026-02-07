@@ -1,0 +1,4 @@
+com\example\medicalrecord\MedicalRecordServiceApplication.class
+com\example\medicalrecord\model\MedicalRecord.class
+com\example\medicalrecord\controller\MedicalRecordController.class
+com\example\medicalrecord\repository\MedicalRecordRepository.class

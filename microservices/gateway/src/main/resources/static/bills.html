@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bills</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="data:," />
+  <script src="/js/auth.js"></script>
+</head>
+<body>
+  <main class="card">
+    <div class="row"><h1>Bills</h1>
+      <nav class="row" style="gap:.5rem">
+        <a class="tile" href="/">Home</a>
+        <a class="tile" id="loginLink" href="/login.html">Login</a>
+        <button id="logoutBtn" class="tile" style="display:none">Logout</button>
+      </nav>
+    </div>
+
+    <section class="section" id="createSection">
+      <h2>Create Bill</h2>
+      <form id="billForm">
+        <div class="row">
+          <div><label>Patient ID<input name="patientId" type="number" required /></label></div>
+          <div><label>Amount<input name="amount" type="number" min="0" step="0.01" required /></label></div>
+          <div><label>Date<input name="billDate" type="date" required /></label></div>
+        </div>
+        <button class="primary" type="submit">Save</button>
+        <span id="billMsg" class="note"></span>
+      </form>
+    </section>
+
+    <section class="section" id="listSection">
+      <h2>All Bills</h2>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Patient ID</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="billBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function renderAuthUI(){
+      renderAuthNav('loginLink','logoutBtn');
+      const role = getRole();
+      const isAdmin = role==='ROLE_ADMIN';
+      const isPatient = role==='ROLE_PATIENT';
+      document.getElementById('createSection').style.display = isAdmin ? '' : 'none';
+    }
+    document.getElementById('logoutBtn').addEventListener('click', logoutAndGoLogin);
+
+    async function loadBills(){
+      ensureLogin(['ROLE_ADMIN','ROLE_PATIENT']);
+      const res = await authFetch('/bill', { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      const tbody = document.getElementById('billBody');
+      tbody.innerHTML = '';
+      data.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${b.id ?? ''}</td>
+          <td>${b.patientId ?? ''}</td>
+          <td>${b.amount ?? ''}</td>
+          <td>${b.billDate ?? ''}</td>
+          <td>${b.status ?? ''}</td>
+          <td>
+            <button data-id="${b.id}" class="secondary pay">Pay</button>
+            <button data-id="${b.id}" class="danger del">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button.pay').forEach(btn => btn.addEventListener('click', async (e)=>{
+        const id = e.currentTarget.getAttribute('data-id');
+        const res = await authFetch('/bill/' + id + '/pay', { method:'POST' });
+        if(!res.ok){ alert('Pay failed: ' + (await res.text())); } else { loadBills(); }
+      }));
+      tbody.querySelectorAll('button.del').forEach(btn => btn.addEventListener('click', async (e)=>{
+        const id = e.currentTarget.getAttribute('data-id');
+        if(!confirm('Delete bill #' + id + '?')) return;
+        const res = await authFetch('/bill/' + id, { method:'DELETE' });
+        if(res.ok) loadBills();
+      }));
+    }
+
+    document.getElementById('billForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const q = new URLSearchParams(fd);
+      const msg = document.getElementById('billMsg');
+      msg.textContent = 'Saving...';
+      const res = await authFetch('/bill?' + q.toString(), { method:'POST', headers:{'Accept':'application/json'} });
+      if(!res.ok){ msg.textContent = 'Error: ' + (await res.text()); }
+      else { msg.textContent = 'Saved'; e.target.reset(); loadBills(); }
+    });
+
+    window.addEventListener('storage', ()=>{ renderAuthUI(); loadBills(); });
+    renderAuthUI();
+    loadBills();
+  </script>
+</body>
+</html>

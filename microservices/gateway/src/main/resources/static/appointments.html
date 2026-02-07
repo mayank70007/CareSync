@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Appointments</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="data:," />
+  <script src="/js/auth.js"></script>
+</head>
+<body>
+  <main class="card">
+    <div class="row"><h1>Appointments</h1>
+      <nav class="row" style="gap:.5rem">
+        <a class="tile" href="/">Home</a>
+        <a class="tile" id="loginLink" href="/login.html">Login</a>
+        <button id="logoutBtn" class="tile" style="display:none">Logout</button>
+      </nav>
+    </div>
+
+    <section class="section" id="manageCreateSection">
+      <h2>Book Appointment</h2>
+      <form id="apptForm">
+        <div class="row">
+          <div><label>Patient ID<input name="patientId" type="number" required /></label></div>
+          <div><label>Doctor ID<input name="doctorId" type="number" required /></label></div>
+          <div><label>Date-Time<input name="appointmentTime" type="datetime-local" required /></label></div>
+        </div>
+        <button class="primary" type="submit">Book</button>
+        <span id="apptMsg" class="note"></span>
+      </form>
+    </section>
+
+    <section class="section" id="manageListSection">
+      <h2>All Appointments</h2>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Patient ID</th>
+              <th>Doctor ID</th>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="apptsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="patientListSection" style="display:none">
+      <h2>My Appointments</h2>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Doctor ID</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="myApptsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="doctorListSection" style="display:none">
+      <h2>My Appointments (Doctor)</h2>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Patient ID</th>
+              <th>Time</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="docApptsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function renderAuthUI(){
+      renderAuthNav('loginLink','logoutBtn');
+      const role = getRole();
+      const isAdmin = role==='ROLE_ADMIN';
+      const isDoctor = role==='ROLE_DOCTOR';
+      const canManage = isAdmin; 
+      document.getElementById('manageCreateSection').style.display = canManage ? '' : 'none';
+      document.getElementById('manageListSection').style.display = canManage ? '' : 'none';
+      document.getElementById('patientListSection').style.display = role==='ROLE_PATIENT' ? '' : 'none';
+      document.getElementById('doctorListSection').style.display = isDoctor ? '' : 'none';
+    }
+    document.getElementById('logoutBtn').addEventListener('click', logoutAndGoLogin);
+
+    async function loadAllAppointments(){
+      ensureLogin(['ROLE_ADMIN','ROLE_DOCTOR','ROLE_PATIENT']);
+      if(getRole() !== 'ROLE_ADMIN') return;
+      const res = await authFetch('/appointment', { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      const tbody = document.getElementById('apptsBody');
+      tbody.innerHTML = '';
+      data.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${a.id ?? ''}</td>
+          <td>${a.patientId ?? a.patient?.id ?? ''}</td>
+          <td>${a.doctorId ?? a.doctor?.id ?? ''}</td>
+          <td>${a.appointmentTime ?? ''}</td>
+          <td>${a.status ?? ''}</td>
+          <td><button data-id="${a.id}" class="danger">Delete</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button.danger').forEach(btn => 
+        btn.addEventListener('click', async (e)=>{
+          const id = e.currentTarget.getAttribute('data-id');
+          if(!id) return;
+          if(!confirm('Delete appointment #' + id + '?')) return;
+          try{
+            const res = await authFetch('/appointment/' + id, { method:'DELETE' });
+            if(!res.ok){
+              alert('Delete failed: ' + (await res.text()));
+            } else {
+              await loadAllAppointments();
+            }
+          }catch(err){
+            alert('Network error');
+          }
+        })
+      );
+    }
+
+    async function loadMyAppointments(){
+      ensureLogin(['ROLE_ADMIN','ROLE_DOCTOR','ROLE_PATIENT']);
+      if(getRole() !== 'ROLE_PATIENT') return;
+      const res = await authFetch('/appointment', { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      const tbody = document.getElementById('myApptsBody');
+      tbody.innerHTML = '';
+      data.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${a.id ?? ''}</td>
+          <td>${a.doctorId ?? a.doctor?.id ?? ''}</td>
+          <td>${a.appointmentTime ?? ''}</td>
+          <td>${a.status ?? ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('apptForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const q = new URLSearchParams(fd);
+      const msg = document.getElementById('apptMsg');
+      msg.textContent = 'Saving...';
+      try {
+        const res = await authFetch('/appointment?' + q.toString(), { 
+          method:'POST', 
+          headers:{'Accept':'application/json'} 
+        });
+        if(!res.ok){
+          const text = await res.text();
+          msg.textContent = `Error: ${text}`;
+        }else{
+          msg.textContent = 'Saved';
+          e.target.reset();
+          await loadAllAppointments();
+        }
+      } catch(err){
+        msg.textContent = 'Network error';
+      }
+    });
+
+  window.addEventListener('storage', ()=>{ renderAuthUI(); loadAllAppointments(); loadMyAppointments(); });
+  renderAuthUI();
+  loadAllAppointments();
+  loadMyAppointments();
+  async function loadDoctorAppointments(){
+    ensureLogin(['ROLE_ADMIN','ROLE_DOCTOR','ROLE_PATIENT']);
+    if(getRole() !== 'ROLE_DOCTOR') return;
+    const res = await authFetch('/appointment', { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    const tbody = document.getElementById('docApptsBody');
+    tbody.innerHTML = '';
+    data.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${a.id ?? ''}</td>
+        <td>${a.patientId ?? a.patient?.id ?? ''}</td>
+        <td>${a.appointmentTime ?? ''}</td>
+        <td>${a.status ?? ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  loadDoctorAppointments();
+  window.addEventListener('storage', ()=>{ loadDoctorAppointments(); });
+  </script>
+</body>
+</html>
